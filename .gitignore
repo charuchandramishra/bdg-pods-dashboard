@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+uploads/
+tmp/
+coverage/
+.DS_Store
+*.tsbuildinfo
+.vite/
+apps/api/uploads/
+apps/web/dist/
+packages/shared/dist/
+.~lock.*

@@ -1,0 +1,30 @@
+{
+  "name": "bdg-pods-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BDG & PODS Analytics Dashboard",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @bdg-pods/api\" \"npm run dev -w @bdg-pods/web\"",
+    "dev:api": "npm run dev -w @bdg-pods/api",
+    "dev:web": "npm run dev -w @bdg-pods/web",
+    "build": "npm run build -w @bdg-pods/shared && npm run build -w @bdg-pods/api && npm run build -w @bdg-pods/web",
+    "test": "npm run test -w @bdg-pods/api",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate -w @bdg-pods/api",
+    "db:seed": "npm run prisma:seed -w @bdg-pods/api",
+    "db:generate": "npm run prisma:generate -w @bdg-pods/api",
+    "lint": "npm run lint -w @bdg-pods/api --if-present && npm run lint -w @bdg-pods/web --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

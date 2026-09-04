@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ReportModule {
+  BDG
+  PODS
+}
+
+enum FileFormat {
+  CSV
+  XLS
+  XLSX
+  DOC
+  DOCX
+  PDF
+}
+
+enum UploadStatus {
+  PENDING
+  PARSED
+  FAILED
+}
+
+enum ImportStatus {
+  PREVIEW
+  COMMITTED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  role         Role        @default(USER)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  uploads      Upload[]
+  imports      ImportJob[]
+
+  @@map("users")
+}
+
+model Upload {
+  id           String       @id @default(cuid())
+  originalName String
+  storedName   String
+  mimeType     String
+  format       FileFormat
+  sizeBytes    Int
+  module       ReportModule
+  status       UploadStatus @default(PENDING)
+  errorMessage String?
+  uploadedById String?
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  imports      ImportJob[]
+
+  @@index([module])
+  @@index([uploadedById])
+  @@map("uploads")
+}
+
+model ImportJob {
+  id              String         @id @default(cuid())
+  uploadId        String
+  upload          Upload         @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  module          ReportModule
+  status          ImportStatus   @default(PREVIEW)
+  recordsFound    Int            @default(0)
+  recordsValid    Int            @default(0)
+  recordsCreated  Int            @default(0)
+  recordsUpdated  Int            @default(0)
+  recordsSkipped  Int            @default(0)
+  errorCount      Int            @default(0)
+  warningCount    Int            @default(0)
+  previewPayload  Json?
+  errorDetails    Json?
+  summary         String?
+  committedById   String?
+  committedBy     User?          @relation(fields: [committedById], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  committedAt     DateTime?
+  bdgMembers      BdgMember[]
+  pods            Pod[]
+
+  @@index([module])
+  @@index([status])
+  @@index([createdAt])
+  @@map("import_jobs")
+}
+
+model BdgMember {
+  id                    String     @id @default(cuid())
+  memberName            String
+  normalizedMemberName  String     @unique
+  totalInbound          Int?
+  totalOutbound         Int?
+  apacInbound           Int?
+  apacOutbound          Int?
+  menaInbound           Int?
+  menaOutbound          Int?
+  internationalInbound  Int?
+  internationalOutbound Int?
+  ukeuInbound           Int?
+  ukeuOutbound          Int?
+  naInbound             Int?
+  naOutbound            Int?
+  periodStart           DateTime?  @db.Date
+  periodEnd             DateTime?  @db.Date
+  sourceImportId        String?
+  sourceImport          ImportJob? @relation(fields: [sourceImportId], references: [id], onDelete: SetNull)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@index([memberName])
+  @@index([updatedAt])
+  @@map("bdg_members")
+}
+
+model Pod {
+  id                      String           @id @default(cuid())
+  name                    String
+  normalizedName          String           @unique
+  description             String?
+  status                  String?
+  startDate               DateTime?        @db.Date
+  developers              String?
+  machineOwner            String?
+  machineAlignedToProject String?
+  feCompletion            Float?
+  beCompletion            Float?
+  integrationCompletion   Float?
+  sourceImportId          String?
+  sourceImport            ImportJob?       @relation(fields: [sourceImportId], references: [id], onDelete: SetNull)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  dailyUpdates            PodDailyUpdate[]
+
+  @@index([status])
+  @@index([name])
+  @@index([updatedAt])
+  @@map("pods")
+}
+
+model PodDailyUpdate {
+  id                    String   @id @default(cuid())
+  podId                 String
+  pod                   Pod      @relation(fields: [podId], references: [id], onDelete: Cascade)
+  date                  DateTime @db.Date
+  feCompletion          Float?
+  beCompletion          Float?
+  integrationCompletion Float?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([podId, date])
+  @@index([date])
+  @@map("pod_daily_updates")
+}
